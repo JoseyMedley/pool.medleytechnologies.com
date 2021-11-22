@@ -98,7 +98,52 @@ function BackendCoinPayments($coin)
 		debuglog("payment done");
 		return;
 	}
+	
+	if($coin->symbol == 'LCC' || $coin->symbol == 'LCCmx')
+	{
+		foreach($users as $user)
+		{
+			$user = getdbo('db_accounts', $user->id);
+			if(!$user) continue;
 
+			$amount = $user->balance;
+			while($user->balance > $min_payout && $amount > $min_payout)
+			{
+				debuglog("$coin->symbol sendtoaddress $user->username $amount");
+				$tx = $remote->sendtoaddress($user->username, round($amount, 7));
+				if(!$tx)
+				{
+					$error = $remote->error;
+					debuglog("RPC $error, {$user->username}, $amount");
+					if (stripos($error,'transaction too large') !== false || stripos($error,'invalid amount') !== false
+						|| stripos($error,'insufficient funds') !== false || stripos($error,'transaction creation failed') !== false
+					) {
+						$coin->payout_max = min((double) $amount, (double) $coin->payout_max);
+						$coin->save();
+						$amount /= 2;
+						continue;
+					}
+					break;
+				}
+
+				$payout = new db_payouts;
+				$payout->account_id = $user->id;
+				$payout->time = time();
+				$payout->amount = bitcoinvaluetoa($amount);
+				$payout->fee = 0;
+				$payout->tx = $tx;
+				$payout->idcoin = $coin->id;
+				$payout->save();
+
+				$user->balance -= $amount;
+				$user->save();
+			}
+		}
+
+		debuglog("payment done");
+		return;
+	}
+	
 	$total_to_pay = 0;
 	$addresses = array();
 
