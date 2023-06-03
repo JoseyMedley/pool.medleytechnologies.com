@@ -114,6 +114,7 @@ static void neoscrypt_hash(const char* input, char* output, uint32_t len)
 
 YAAMP_ALGO g_algos[] =
 {
+	{"0x10", hash0x10, 1, 0, 0},
 	{"a5a", a5a_hash, 0x10000, 0, 0},
 	{"aergo", aergo_hash, 1, 0, 0},
 	{"allium", allium_hash, 0x100, 0, 0},
@@ -164,6 +165,7 @@ YAAMP_ALGO g_algos[] =
 	{"m7m", m7m_hash, 0x10000, 0, 0},
 	{"megabtx", megabtx_hash, 0x100, 0, 0}, /* Bitcore New Algo*/
 	{"megamec", megamec_hash, 0x100, 0, 0}, /* Megacoin New Algo*/
+	{"mike", mike_hash, 0x10000, 0, 0},
 	{"minotaur", minotaur_hash, 1, 0, 0},
 	{"minotaurx", minotaurx_hash, 1, 0, 0},
 	{"myr-gr", groestlmyriad_hash, 1, 0, 0}, /* groestl + sha 64 */
@@ -185,8 +187,11 @@ YAAMP_ALGO g_algos[] =
 	{"scryptn", scryptn_hash, 0x10000, 0, 0},
 	{"sha256", sha256_hash, 1, 0, 0},
 	{"sha256d", sha256_double_hash, 1, 0, 0},
+	{"sha256dt", sha256dt_hash, 1, 0, 0},
 	{"sha256csm", sha256csm_hash, 1, 0, 0},
 	{"sha256t", sha256t_hash, 1, 0, 0}, // sha256 3x
+	{"sha3d", sha3d_hash, 1, 0, sha3d_hash_hex},
+	{"sha512256d", sha512_256_double_hash, 1, 0, 0},
 	{"sib", sib_hash, 1, 0, 0},
 	{"skein", skein_hash, 1, 0, 0},
 	{"skein2", skein2_hash, 1, 0, 0},

@@ -3,9 +3,9 @@
  * CVarDumper class file.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @link http://www.yiiframework.com/
+ * @link https://www.yiiframework.com/
  * @copyright 2008-2013 Yii Software LLC
- * @license http://www.yiiframework.com/license/
+ * @license https://www.yiiframework.com/license/
  */
 
 /**
@@ -40,11 +40,6 @@ class CVarDumper
 	public static function dump($var,$depth=10,$highlight=false)
 	{
 		echo self::dumpAsString($var,$depth,$highlight);
-	}
-
-	public static function dumperror($var,$depth=10)
-	{
-		debuglog(self::dumpAsString($var,$depth)."\r\n", 3, YAAMP_LOGS."/debug.log");
 	}
 
 	/**

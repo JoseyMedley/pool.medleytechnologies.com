@@ -8,21 +8,19 @@ function updateRawcoins()
 	debuglog(__FUNCTION__);
 	// exit();
 	exchange_set_default('alcurex', 'disabled', true);
-	// exchange_set_default('binance', 'disabled', true);
-	exchange_set_default('bleutrade', 'disabled', true);
-	exchange_set_default('empoex', 'disabled', true);
-	exchange_set_default('coinbene', 'disabled', true);
-	exchange_set_default('coinexchange', 'disabled', true);
-	exchange_set_default('coinsmarkets', 'disabled', true);
-	exchange_set_default('gateio', 'disabled', true);
-	exchange_set_default('jubi', 'disabled', true);
-	// exchange_set_default('nova', 'disabled', true);
-	exchange_set_default('stocksexchange', 'disabled', true);
-	exchange_set_default('tradesatoshi', 'disabled', true);
-	exchange_set_default('cryptopia', 'disabled', true);
-	exchange_set_default('stex', 'disabled', true);
+	exchange_set_default('altmarkets', 'disabled', true);
 	exchange_set_default('binance', 'disabled', true);
-	exchange_set_default('bitrex', 'disabled', true);
+	exchange_set_default('bittrex', 'disabled', true);
+	exchange_set_default('bleutrade', 'disabled', true);
+	exchange_set_default('bter', 'disabled', true);
+	exchange_set_default('empoex', 'disabled', true);
+	exchange_set_default('exbitron', 'disabled', false);
+	exchange_set_default('hitbtc', 'disabled', true);
+	exchange_set_default('kraken', 'disabled', true);
+	exchange_set_default('kucoin', 'disabled', true);
+	exchange_set_default('livecoin', 'disabled', true);
+	exchange_set_default('poloniex', 'disabled', true);
+	exchange_set_default('yobit', 'disabled', false);
 
 	settings_prefetch_all();
 
@@ -89,6 +87,29 @@ function updateRawCoinExchange($marketname)
 						// debuglog(json_encode($e));
 						$base = $e[1];
 						if (strtoupper($base) !== 'BTC')
+							continue;
+						$symbol = strtoupper($e[0]);
+						// debuglog($symbol);
+						updateRawCoin($marketname, $symbol);
+					}
+				}
+			}
+		break;
+
+		case 'exbitron':
+			if (!exchange_get($marketname, 'disabled')) 
+			{
+				$list = exbitron_api_query('markets');
+				if(is_array($list) && !empty($list))
+				{
+					// debuglog(json_encode($list));
+					dborun("UPDATE markets SET deleted=true WHERE name='$marketname'");
+					foreach($list as $key=>$data) {
+						// debuglog(json_encode($data));
+						$e = explode("/",$data->name);
+						// debuglog(json_encode($e));
+						$base = $e[1];
+						if (strtoupper($base) !== 'BTC'||strtoupper($base) !== 'USDT')
 							continue;
 						$symbol = strtoupper($e[0]);
 						// debuglog($symbol);
@@ -268,6 +289,22 @@ function updateRawCoinExchange($marketname)
 							continue;
 						}
 						updateRawCoin('bittrex', $currency->Currency, $currency->CurrencyLong);
+					}
+				}
+			}
+		break;
+		case 'txbit':
+			if (!exchange_get('txbit', 'disabled')) {
+				$list = txbit_api_query('public/getcurrencies');
+				if(isset($list->result) && !empty($list->result))
+				{
+					dborun("UPDATE markets SET deleted=true WHERE name='txbit'");
+					foreach($list->result as $currency) {
+						if ($currency->Currency == 'BTC') {
+							exchange_set('txbit', 'withdraw_fee_btc', $currency->TxFee);
+							continue;
+						}
+						updateRawCoin('txbit', $currency->Currency, $currency->CurrencyLong);
 					}
 				}
 			}

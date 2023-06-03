@@ -6,7 +6,10 @@ function yaamp_get_algos()
 	return array(
 		'sha256',
 		'sha256csm',
+		'sha256dt',
 		'sha256t',
+		'sha3d',
+		'sha512256d',
 		'scrypt',
 		'scryptn',
 		'allium',
@@ -86,11 +89,13 @@ function yaamp_get_algos()
 		'm7m',
 		'megabtx',
 		'megamec',
+		'mike',
 		'minotaur',
 		'minotaurx',
 		'phi',
 		'phi2',
 		'phi5',
+		'0x10',
 		'pipe',
 		'sib',
 		'skein',
@@ -150,9 +155,14 @@ function yaamp_algo_mBTC_factor($algo)
 		return 0.001;
 	case 'gr':
 		return 0.001;
+	case 'mike':
+		return 0.001;
 	case 'yespowerARWN':
 		return 0.001;
 	case 'vanilla':
+		return 1000;
+	case 'heavyhash':
+	case 'sha512256d':
 		return 1000;
 	default:
 		return 1;
@@ -183,6 +193,7 @@ function yaamp_get_algo_norm($algo)
 		'gr'		=> 0.001,
 		'yespowerARWN'		=> 0.001,
 		'myr-gr'	=> 1.0,
+		'mike'		=> 0.001,
 		'nist5'		=> 1.0,
 		'neoscrypt'	=> 1.0,
 		'quark'		=> 1.0,
@@ -212,7 +223,10 @@ function getAlgoColors($algo)
 	$a = array(
 		'sha256'	=> '#d0d0a0',
 		'sha256csm'	=> '#d0d0a0',
+		'sha256dt'	=> '#d0d0f0',
 		'sha256t'	=> '#d0d0f0',
+		'sha3d'		=> '#d0d0f0',
+		'sha512256d'	=> '#d0d0a0',
 		'scrypt'	=> '#c0c0e0',
 		'neoscrypt'	=> '#a0d0f0',
 		'scryptn'	=> '#d0d0d0',
@@ -267,12 +281,13 @@ function getAlgoColors($algo)
 		'keccakc'	=> '#c0f0c0',
 		'heavyhash'	=> '#c0f0c0',
 		'hex'		=> '#c0f0c0',
-		'honeycomb'		=> '#c0f0c0',
+		'honeycomb'	=> '#c0f0c0',
 		'lbry'		=> '#b0d0e0',
 		'luffa'		=> '#a0c0c0',
 		'm7m'		=> '#d0a0a0',
 		'megabtx'	=> '#d0f0a0',
 		'megamec'	=> '#d0f0a0',
+		'mike'		=> '#d0f0a0',
 		'minotaur'	=> '#d0f0a0',
 		'minotaurx'	=> '#d0f0a0',
 		'penta'		=> '#80c0c0',
@@ -291,6 +306,7 @@ function getAlgoColors($algo)
 		'phi'		=> '#a0a0e0',
 		'phi2'		=> '#a0a0e0',
 		'phi5'		=> '#aba0e0',
+		'0x10'	=> '#aba0e0',
 		'pipe'		=> '#a0a0e0',
 		'polytimos'	=> '#dedefe',
 		'power2b'	=> '#e2d0d2',
@@ -350,7 +366,10 @@ function getAlgoPort($algo)
 	$a = array(
 		'sha256'	=> 3333,
 		'sha256csm'	=> 3340,
+		'sha256dt'	=> 3338,
 		'sha256t'	=> 3339,
+		'sha3d'		=> 3335,
+		'sha512256d'	=> 7086,
 		'lbry'		=> 3334,
 		'scrypt'	=> 3433,
 		'timetravel'	=> 3555,
@@ -458,7 +477,8 @@ function getAlgoPort($algo)
 		'hsr'		=> 7433,
 		'phi'		=> 8333,
 		'phi2'		=> 8332,
-		'phi2'		=> 8334,
+		'phi5'		=> 8334,
+		'0x10'		=> 8335,
 		'pipe'		=> 9393,
 		'polytimos'	=> 8463,
 		'skunk'		=> 8433,
@@ -468,6 +488,7 @@ function getAlgoPort($algo)
 		'minotaurx'	=> 7019,
 		'megabtx'	=> 7066,
 		'megamec'	=> 7067,
+		'mike'		=> 7079,
 		
 		'astralhash'   	=> 8640,
 		'globalhash'   	=> 8650,
@@ -494,22 +515,6 @@ function yaamp_fee($algo)
 	$fee = controller()->memcache->get("yaamp_fee-$algo");
 	if($fee && is_numeric($fee)) return (float) $fee;
 
-/*	$norm = yaamp_get_algo_norm($algo);
-	if($norm == 0) $norm = 1;
-
-	$hashrate = getdbosql('db_hashrate', "algo=:algo order by time desc", array(':algo'=>$algo));
-	if(!$hashrate || !$hashrate->difficulty) return 1;
-
-	$target = yaamp_hashrate_constant($algo);
-	$interval = yaamp_hashrate_step();
-	$delay = time()-$interval;
-
-	$rate = controller()->memcache->get_database_scalar("yaamp_pool_rate_coinonly-$algo",
-		"select sum(difficulty) * $target / $interval / 1000 from shares where valid and time>$delay and algo=:algo and jobid=0", array(':algo'=>$algo));
-
-//	$fee = round(log($hashrate->hashrate * $norm / 1000000 / $hashrate->difficulty + 1), 1) + YAAMP_FEES_MINING;
-//	$fee = round(log($rate * $norm / 2000000 / $hashrate->difficulty + 1), 1) + YAAMP_FEES_MINING;
-*/
 	$fee = YAAMP_FEES_MINING;
 
 	// local fees config
@@ -627,6 +632,30 @@ function yaamp_pool_rate($algo=null)
 	return $rate;
 }
 
+function yaamp_pool_shared_rate($algo=null)
+{
+	if(!$algo) $algo = user()->getState('yaamp-algo');
+
+	$target = yaamp_hashrate_constant($algo);
+	$interval = yaamp_hashrate_step();
+	$delay = time()-$interval;
+
+	$rate = controller()->memcache->get_database_scalar("yaamp_pool_shared_rate-$algo","SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND time>$delay AND algo=:algo AND solo=0", array(':algo'=>$algo));
+	return $rate;
+}
+
+function yaamp_pool_solo_rate($algo=null)
+{
+	if(!$algo) $algo = user()->getState('yaamp-algo');
+
+	$target = yaamp_hashrate_constant($algo);
+	$interval = yaamp_hashrate_step();
+	$delay = time()-$interval;
+
+	$rate = controller()->memcache->get_database_scalar("yaamp_pool_solo_rate-$algo","SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND time>$delay AND algo=:algo AND solo=1", array(':algo'=>$algo));
+	return $rate;
+}
+
 function yaamp_pool_rate_bad($algo=null)
 {
 	if(!$algo) $algo = user()->getState('yaamp-algo');
@@ -666,6 +695,30 @@ function yaamp_user_rate($userid, $algo=null)
 	$rate = controller()->memcache->get_database_scalar("yaamp_user_rate-$userid-$algo",
 		"SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND time>$delay AND userid=$userid AND algo=:algo", array(':algo'=>$algo));
 
+	return $rate;
+}
+
+function yaamp_user_shared_rate($userid, $algo=null)
+{
+	if(!$algo) $algo = user()->getState('yaamp-algo');
+
+	$target = yaamp_hashrate_constant($algo);
+	$interval = yaamp_hashrate_step();
+	$delay = time()-$interval;
+
+	$rate = controller()->memcache->get_database_scalar("yaamp_user_shared_rate-$userid-$algo","SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND time>$delay AND userid=$userid AND algo=:algo AND solo=0", array(':algo'=>$algo));
+	return $rate;
+}
+
+function yaamp_user_solo_rate($userid, $algo=null)
+{
+	if(!$algo) $algo = user()->getState('yaamp-algo');
+
+	$target = yaamp_hashrate_constant($algo);
+	$interval = yaamp_hashrate_step();
+	$delay = time()-$interval;
+
+	$rate = controller()->memcache->get_database_scalar("yaamp_user_solo_rate-$userid-$algo","SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND time>$delay AND userid=$userid AND algo=:algo AND solo=1", array(':algo'=>$algo));
 	return $rate;
 }
 
@@ -741,6 +794,36 @@ function yaamp_coin_rate($coinid)
 
 	$rate = controller()->memcache->get_database_scalar("yaamp_coin_rate-$coinid",
 		"SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND time>$delay AND coinid=$coinid");
+
+	return $rate;
+}
+
+function yaamp_coin_shared_rate($coinid)
+{
+	$coin = getdbo('db_coins', $coinid);
+	if(!$coin || !$coin->enable) return 0;
+
+	$target = yaamp_hashrate_constant($coin->algo);
+	$interval = yaamp_hashrate_step();
+	$delay = time()-$interval;
+
+	$rate = controller()->memcache->get_database_scalar("yaamp_coin_shared_rate-$coinid",
+		"SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND solo=0 AND time>$delay AND coinid=$coinid");
+
+	return $rate;
+}
+
+function yaamp_coin_solo_rate($coinid)
+{
+	$coin = getdbo('db_coins', $coinid);
+	if(!$coin || !$coin->enable) return 0;
+
+	$target = yaamp_hashrate_constant($coin->algo);
+	$interval = yaamp_hashrate_step();
+	$delay = time()-$interval;
+
+	$rate = controller()->memcache->get_database_scalar("yaamp_coin_solo_rate-$coinid",
+		"SELECT (sum(difficulty) * $target / $interval / 1000) FROM shares WHERE valid AND solo=1 AND time>$delay AND coinid=$coinid");
 
 	return $rate;
 }

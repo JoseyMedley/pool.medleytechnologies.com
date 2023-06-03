@@ -84,6 +84,12 @@ function BackendPricesUpdateExchange($exchangename)
 		case 'altmarkets':
 			updateAltMarketsMarkets();
 		break;
+		case 'exbitron':
+			updateExbitronMarkets();
+		break;
+		case 'yobit':
+			updateYobitMarkets();
+		break;
 		case 'occe':
 			updateOCCEMarkets();
 		break;
@@ -119,6 +125,9 @@ function BackendPricesUpdateExchange($exchangename)
 		break;
 		case 'bittrex':
 			updateBittrexMarkets();
+		break;
+		case 'txbit':
+			updateTxbitMarkets();
 		break;
 		case 'btc-alpha':
 			updateBTCAlphaMarkets();
@@ -354,6 +363,74 @@ function updateAltMarketsMarkets() {
 	if(empty($list) || !is_array($list)) return;
 	// debuglog(json_encode($list));
 	$tickers = altmarkets_api_query('markets/tickers');
+	foreach($list as $data) {
+		$e = explode('/', $data->name);
+		$symbol = strtoupper($e[0]); $base = strtoupper($e[1]);
+		if($base != 'BTC') continue;
+		// debuglog("$symbol : $base");
+		$id = $data->id;
+
+		$coin = getdbosql('db_coins', "symbol=:sym", array(':sym'=>$symbol));
+		if(!$coin) continue;
+		$market = getdbosql('db_markets', "coinid={$coin->id} AND name='$exchange' AND IFNULL(base_coin,'') IN ('','BTC')");
+		$symbol = $coin->getOfficialSymbol();
+		if(!$market)
+		{
+			//debuglog ("$symbol not found in db");
+			$market = new db_markets;
+			$market->coinid = $coin->id;
+			$market->disabled = 0;
+			$market->deleted = 0;
+			$market->name = $exchange;
+			//continue;	
+		}
+		else
+		{
+			//debuglog ("$symbol found in db");
+			$symbol = $coin->getOfficialSymbol();
+			if (market_get($exchange, $symbol, "disabled")) {
+				$market->disabled = 1;
+				$market->message = 'disabled from settings';
+				$market->save();
+				continue;
+			}
+		}
+		$ticker = $tickers->$id;
+		// debuglog(json_encode($ticker));
+		$data = $ticker->ticker;
+		$bid = bitcoinvaluetoa($data->low);
+		$ask = bitcoinvaluetoa($data->high);
+		$market->disabled = ($bid == 0);
+		$price2 = ((double)$ask + (double)$bid)/2;
+		//debuglog($symbol. ' : ' .$price2);
+		$market->price2 = AverageIncrement($market->price2, $price2);
+		$market->price = AverageIncrement($market->price, (double)$bid);
+		$market->priority = -1; // not ready for trading
+		$market->txfee = 0.2;
+		debuglog("$exchange: $symbol price set to ".bitcoinvaluetoa($market->price));
+		$market->pricetime = time(); // $m->updated_time;
+		$market->save();
+		if (!empty($market->price2))
+		{
+			if ((empty($coin->price2))||($coin->price2==0)) {
+				$coin->price = $market->price;
+				$coin->price2 = $market->price2;
+				$coin->save();
+			}
+		}
+	}
+}
+
+function updateExbitronMarkets() {
+	debuglog(__FUNCTION__);
+	
+	$exchange = 'exbitron';
+	debuglog ("====== $exchange =======");
+	if (exchange_get($exchange, 'disabled')) return;
+	$list = exbitron_api_query('markets');
+	if(empty($list) || !is_array($list)) return;
+	// debuglog(json_encode($list));
+	$tickers = exbitron_api_query('markets/tickers');
 	foreach($list as $data) {
 		$e = explode('/', $data->name);
 		$symbol = strtoupper($e[0]); $base = strtoupper($e[1]);
@@ -1378,6 +1455,89 @@ function updateBittrexMarkets($force = false)
 			if($force || (empty($market->deposit_address) && !$last_checked))
 			{
 				$address = bittrex_api_query('account/getdepositaddress', "&currency={$symbol}");
+				if(is_object($address) && isset($address->result)) {
+					$addr = $address->result->Address;
+					if (!empty($addr) && $addr != $market->deposit_address) {
+						$market->deposit_address = $addr;
+						$market->save();
+						debuglog("$exchange: deposit address for {$coin->symbol} updated");
+					}
+				}
+			}
+			cache()->set($exchange.'-deposit_address-check-'.$coin->symbol, time(), 12*3600);
+		}
+
+//		debuglog("$exchange: update $coin->symbol: $market->price $market->price2");
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+function updateTxbitMarkets($force = false)
+{
+
+	$exchange = 'txbit';
+	if (exchange_get($exchange, 'disabled')) return;
+
+	$count = (int) dboscalar("SELECT count(id) FROM markets WHERE name LIKE '$exchange%'");
+	if ($count == 0) return;
+
+	$list = txbit_api_query('public/getcurrencies');
+	if(!is_object($list)) return;
+	foreach($list->result as $currency)
+	{
+		$market = objSafeVal($currency,'Currency','');
+		if(empty($market) || $market == 'BTC') continue;
+
+		$coin = getdbosql('db_coins', "symbol=:sym", array(':sym'=>$currency->Currency));
+		if(!$coin) continue;
+
+		$market = getdbosql('db_markets', "coinid={$coin->id} AND name='$exchange'");
+		if(!$market) continue;
+
+		$market->txfee = $currency->TxFee; // withdraw cost, not a percent!
+		if($market->disabled < 9) $market->disabled = !$currency->IsActive;
+
+		$market->save();
+	}
+
+	sleep(1);
+
+	$list = txbit_api_query('public/getmarketsummaries');
+	if(!is_object($list)) return;
+
+	foreach($list->result as $m)
+	{
+		$a = explode('/', $m->MarketName);
+		if(!isset($a[1])) continue;
+		if($a[1] != 'BTC') continue;
+		$symbol = $a[0];
+		if($symbol == 'BTC') continue;
+
+		$coin = getdbosql('db_coins', "symbol=:sym", array(':sym'=>$symbol));
+		if(!$coin) continue;
+
+		$market = getdbosql('db_markets', "coinid={$coin->id} AND name='$exchange'");
+		if(!$market) continue;
+
+		if (market_get($exchange, $symbol, "disabled")) {
+			$market->disabled = 1;
+			$market->message = 'disabled from settings';
+		}
+
+		$price2 = ($m->Bid + $m->Ask)/2;
+		$market->price2 = AverageIncrement($market->price2, $price2);
+		$market->price = AverageIncrement($market->price, $m->Bid);
+		$market->pricetime = time();
+		$market->save();
+
+		// deposit address
+		if(!empty(EXCH_TXBIT_KEY))
+		{
+			$last_checked = cache()->get($exchange.'-deposit_address-check-'.$symbol);
+			if($force || (empty($market->deposit_address) && !$last_checked))
+			{
+				$address = txbit_api_query('account/getdepositaddress', "&currency={$symbol}");
 				if(is_object($address) && isset($address->result)) {
 					$addr = $address->result->Address;
 					if (!empty($addr) && $addr != $market->deposit_address) {
