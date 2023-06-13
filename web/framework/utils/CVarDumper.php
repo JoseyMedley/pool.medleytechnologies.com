@@ -42,6 +42,11 @@ class CVarDumper
 		echo self::dumpAsString($var,$depth,$highlight);
 	}
 
+	public static function dumperror($var,$depth=10)
+	{
+		debuglog(self::dumpAsString($var,$depth)."\r\n", 3, YAAMP_LOGS."/debug.log");
+	}
+
 	/**
 	 * Dumps a variable in terms of a string.
 	 * This method achieves the similar functionality as var_dump and print_r

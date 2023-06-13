@@ -151,6 +151,12 @@ class CWebApplication extends CApplication
 		parent::registerCoreComponents();
 
 		$components=array(
+			'urlManager'=>array(
+				'class'=>'CUrlManager',
+			),
+			'request'=>array(
+				'class'=>'CHttpRequest',
+			),
 			'session'=>array(
 				'class'=>'CHttpSession',
 			),
@@ -175,6 +181,22 @@ class CWebApplication extends CApplication
 		);
 
 		$this->setComponents($components);
+	}
+
+	/**
+	 * @return CHttpRequest the request component
+	 */
+	public function getRequest()
+	{
+		return $this->getComponent('request');
+	}
+
+	/**
+	 * @return CUrlManager the URL manager component
+	 */
+	public function getUrlManager()
+	{
+		return $this->getComponent('urlManager');
 	}
 
 	/**
@@ -282,9 +304,11 @@ class CWebApplication extends CApplication
 			$controller->run($actionID);
 			$this->_controller=$oldController;
 		}
-		else
-			throw new CHttpException(404,Yii::t('yii','Unable to resolve the request "{route}".',
+		else {
+			$client_ip = arraySafeVal($_SERVER,'REMOTE_ADDR');
+			throw new CHttpException(404, $client_ip.': '.Yii::t('yii','CWebApp: Unable to resolve the request "{route}".',
 				array('{route}'=>$route===''?$this->defaultController:$route)));
+		}
 	}
 
 	/**
@@ -344,6 +368,9 @@ class CWebApplication extends CApplication
 				$controllerID.='/';
 			$className=ucfirst($id).'Controller';
 			$classFile=$basePath.DIRECTORY_SEPARATOR.$className.'.php';
+
+			// yaamp patch
+			$classFile=GetSSModulePath($className);
 
 			if($owner->controllerNamespace!==null)
 				$className=$owner->controllerNamespace.'\\'.str_replace('/','\\',$controllerID).$className;

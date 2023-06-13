@@ -459,8 +459,16 @@ class YiiBase
 						}
 					}
 				}
-				else
+				else {
+					// yaamp patch...
+					$classfile = GetSSModulePath("{$className}Model");
+					if($classfile) {
+						include($classfile);
+						return class_exists($className,false) || interface_exists($className,false);
+					}
+					// yaamp patch end
 					include($className.'.php');
+				}
 			}
 			else  // class name with namespace in PHP 5.3
 			{
