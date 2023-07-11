@@ -277,7 +277,6 @@ function BackendCoinsUpdate()
 
 			else
 			{
-				$coin->auto_ready = false;
 				$coin->errors = $remote->error;
 			}
 
