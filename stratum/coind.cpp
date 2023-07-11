@@ -3,9 +3,6 @@
 
 void coind_error(YAAMP_COIND *coind, const char *s)
 {
-	coind->auto_ready = false;
-
-	object_delete(coind);
 	debuglog("%s error %s\n", coind->name, s);
 }
 
