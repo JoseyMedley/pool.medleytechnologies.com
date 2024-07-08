@@ -120,13 +120,14 @@ function BackendCoinsUpdate()
 		if($coin->auxpow == NULL)
 		{
 			$ret = $remote->getauxblock();
-
-			if(strcasecmp($remote->error, 'method not found') == 0)
+			$remerr = $remove->error;
+			if(strcasecmp($remerr, 'method not found') == 0)
 				$coin->auxpow = false;
-			else if(strcasecmp($remote->error, 'Method not found') == 0)
+			else if(strcasecmp($remerr, 'Method not found') == 0)
 				$coin->auxpow = false;
 			else
 				$coin->auxpow = true;
+				debuglog($remerr);
 		}
 
         // Change for segwit
@@ -163,10 +164,9 @@ function BackendCoinsUpdate()
 				$coin->reward = arraySafeVal($template,'coinbasevalue')/100000000 * $coin->reward_mul;
 				$coin->charity_amount = $coin->reward * $coin->charity_percent / 100;
 			}
-				
-			else if($coin->symbol == 'BNODE') 
+			else if($coin->symbol == 'BNODE')
 			{
-                   if(isset($template['masternode'])) 
+                   if(isset($template['masternode']))
 				{
 					if (arraySafeVal($template,'masternode_payments_started'))
 					$coin->reward -= arraySafeVal($template['masternode'],'amount',0)/100000000;
