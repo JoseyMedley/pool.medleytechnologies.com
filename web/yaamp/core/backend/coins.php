@@ -111,6 +111,8 @@ function BackendCoinsUpdate()
 			$remote->submitblock('');
 			if(strcasecmp($remote->error, 'method not found') == 0)
 				$coin->hassubmitblock = false;
+			else if(strcasecmp($remote->error, 'Method not found') == 0)
+				$coin->hassubmitblock = false;
 			else
 				$coin->hassubmitblock = true;
 		}
@@ -120,6 +122,8 @@ function BackendCoinsUpdate()
 			$ret = $remote->getauxblock();
 
 			if(strcasecmp($remote->error, 'method not found') == 0)
+				$coin->auxpow = false;
+			else if(strcasecmp($remote->error, 'Method not found') == 0)
 				$coin->auxpow = false;
 			else
 				$coin->auxpow = true;
@@ -358,7 +362,3 @@ function BackendCoinsUpdate()
 	$d1 = microtime(true) - $t1;
 	controller()->memcache->add_monitoring_function(__METHOD__, $d1);
 }
-
-
-
-
