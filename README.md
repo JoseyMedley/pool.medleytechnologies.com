@@ -4,7 +4,7 @@
 
 * Linux
 * Mysql
-* Php 7.3
+* Php 8.3
 * Memcached
 * Nginx (Recommended)
     - You can also use lighttpd or apache
@@ -24,7 +24,7 @@ Use this Config on nginx:
 	}
 
 	location ~ \.php$ {
-		fastcgi_pass unix:/var/run/php5-fpm.sock;
+		fastcgi_pass unix:/var/run/php8-fpm.sock;
 		fastcgi_index index.php;
 		include fastcgi_params;
 	}
@@ -92,8 +92,6 @@ Start one stratum per algo using the run.sh script with the algo as parameter. F
 
 Edit each .conf file with proper values.
 
-Look at rc.local, it starts all three backend shells and all stratum processes. Copy it to the /etc folder so that all screen shells are started at boot up.
-
 All your coin's config files need to blocknotify their corresponding stratum using something like:
 
 	blocknotify=blocknotify yaamp.com:port coinid %s
@@ -119,12 +117,6 @@ and in the lighttpd config file:
 
 And finally remove the IP filter check in SiteController.php
 
-Using MySQLTuner:
-
-sudo apt-get install mysqltuner
-wait at least 24h
-in cli: mysqltuner
-
 There are logs generated in the /var/stratum folder and /var/log/stratum/debug.log for the php log.
 
 More instructions coming as needed.
@@ -138,26 +130,3 @@ There a lot of unused code in the php branch. Lot come from other projects I wor
 Credits:
 
 Thanks to globalzon to have released the initial Yaamp source code.
-
---
-
-You can support this project donating 
-
-tpruvot :
-
-	BTC : 1Auhps1mHZQpoX4mCcVL8odU81VakZQ6dR
-
-xiaolin1579 :
-
-	BTC : 1Hfa7BBHejzGj4CNRpV2Lh4xYGizX8c1A5
-	
-	BTC [BEP20] : 0xf6e4e1ce8b3801a612cfff40f29116fbf595b13e
-	
-	DOGE : D6oP3WPygJ4NR26XxfFydUsCiNS4oX9rqb
-	
-	USDT [BEP20] : 0xf6e4e1ce8b3801a612cfff40f29116fbf595b13e
-	
-	USDT [TRC20] : TF6vSbcFFGtwSRgvH1JqkQuVb9J4cszpGc
-	
-	RXD : 1N8WZpwSPaFvbaSMzDrPbLqbfM8tLVE87e
-
