@@ -5,15 +5,15 @@ require_once('yaamp/defaultconfig.php');
 
 class CronjobController extends CommonController
 {
-	private function monitorApache()
+	private function monitorNGINX()
 	{
 		if(!YAAMP_PRODUCTION) return;
 		if(!YAAMP_USE_NGINX) return;
 
 		$uptime = exec('uptime');
 
-		$apache_locked = memcache_get($this->memcache->memcache, 'apache_locked');
-		if($apache_locked) return;
+		$nginx_locked = memcache_get($this->memcache->memcache, 'nginx_locked');
+		if($nginx_locked) return;
 
 		$b = preg_match('/load average: (.*)$/', $uptime, $m);
 		if(!$b) return;
@@ -27,15 +27,13 @@ class CronjobController extends CommonController
 		if($e[0] > 4 && $webserver_running)
 		{
 			debuglog('server overload!');
-	//		debuglog('stopping webserver');
-	//		system("service $webserver stop");
 			sleep(1);
 		}
 
 		else if(!$webserver_running)
 		{
 			debuglog('starting webserver');
-			system("service $webserver start");
+			system("sudo systemctl start $webserver");
 		}
 	}
 
@@ -44,19 +42,17 @@ class CronjobController extends CommonController
 		// debuglog(__METHOD__);
 		set_time_limit(0);
 
-		$this->monitorApache();
+		$this->monitorNGINX();
 
 		$last_complete = memcache_get($this->memcache->memcache, "cronjob_block_time_start");
 		if($last_complete+(5*60) < time())
 			dborun("update jobs set active=false");
-		
+
 		BackendBlockFind1();
-		
+
 		if(!memcache_get($this->memcache->memcache, 'balances_locked')) {
 			BackendClearEarnings();
 		}
-		
-		BackendRentingUpdate();
 		BackendProcessList();
 		BackendBlocksUpdate();
 
@@ -69,23 +65,13 @@ class CronjobController extends CommonController
 		// debuglog(__METHOD__);
 		set_time_limit(0);
 
-		$this->monitorApache();
+		$this->monitorNGINX();
 
 		BackendCoinsUpdate();
 		BackendStatsUpdate();
 		BackendUsersUpdate();
 
-		BackendUpdateServices();
-		BackendUpdateDeposit();
-
 		MonitorBTC();
-
-		$last = memcache_get($this->memcache->memcache, 'last_renting_payout2');
-		if($last + 5*60 < time() && !memcache_get($this->memcache->memcache, 'balances_locked'))
-		{
-			memcache_set($this->memcache->memcache, 'last_renting_payout2', time());
-			BackendRentingPayout();
-		}
 
 		$last = memcache_get($this->memcache->memcache, 'last_stats2');
 		if($last + 5*60 < time())
@@ -130,19 +116,13 @@ class CronjobController extends CommonController
 				if(!YAAMP_PRODUCTION) break;
 
 				getBitstampBalances();
-				getCexIoBalances();
-				doBittrexTrading();
 				doKrakenTrading();
-				doLiveCoinTrading();
-				doPoloniexTrading();
 				break;
 
 			case 2:
 				if(!YAAMP_PRODUCTION) break;
 
 				doBinanceTrading();
-				doBterTrading();
-				doBleutradeTrading();
 				doKuCoinTrading();
 				doYobitTrading();
 				break;
@@ -197,13 +177,13 @@ class CronjobController extends CommonController
 		$mining->last_payout = time();
 		$mining->save();
 
-		memcache_set($this->memcache->memcache, 'apache_locked', true);
+		memcache_set($this->memcache->memcache, 'nginx_locked', true);
 		if(YAAMP_USE_NGINX)
-			//system("service nginx stop");
+			system("sudo systemctl stop nginx");
 
 		sleep(10);
 		BackendDoBackup();
-		memcache_set($this->memcache->memcache, 'apache_locked', false);
+		memcache_set($this->memcache->memcache, 'nginx_locked', false);
 
 		// prevent user balances changes during payments (blocks thread)
 		memcache_set($this->memcache->memcache, 'balances_locked', true, 0, 300);
@@ -215,6 +195,5 @@ class CronjobController extends CommonController
 	//	BackendOptimizeTables();
 		debuglog('payments sequence done');
 	}
-
 }
 

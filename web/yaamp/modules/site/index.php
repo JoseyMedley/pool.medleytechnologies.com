@@ -127,7 +127,6 @@ $payout_freq = (YAAMP_PAYMENTS_FREQ / 3600) . " hours";
 
 <ul>
 <li>&lt;WALLET_ADDRESS&gt; must be valid for the currency you mine. <b>DO NOT USE a BTC address here, the auto exchange is disabled on these stratums</b>!</li>
-<!-- <li><b>Our stratums are now NiceHASH compatible and ASICBoost enabled, please message support if you have any issues.</b></li> -->
 <li>See the "<?=YAAMP_SITE_NAME?> coins" area on the right for PORT numbers. You may mine any coin regardless if the coin is enabled or not for autoexchange. Payouts will only be made in that coins currency.</li>
 <li>Payouts are made automatically every hour for all balances above <b><?=$min_payout?></b>, or <b><?=$min_sunday?></b> on Sunday.</li>
 <br>
@@ -170,16 +169,12 @@ endif;
 <div class="main-left-inner">
 
 <ul class="social-icons">
-<!--    <li><a href="http://www.facebook.com"><img src='/images/Facebook.png' /></a></li>
-    <li><a href="http://www.twitter.com"><img src='/images/Twitter.png' /></a></li>
-    <li><a href="http://www.youtube.com"><img src='/images/YouTube.png' /></a></li>
     <li><a href="http://www.github.com"><img src='/images/Github.png' /></a></li> -->
     <li><a href="https://discord.gg/DrsrWQh3qC"><img src='/images/discord.png' /></a></li>
 </ul>
 
 </div></div><br>
 </td><td valign=top>
-<!--  -->
 
 <div id='pool_current_results'>
 <br><br><br><br><br><br><br><br><br><br>

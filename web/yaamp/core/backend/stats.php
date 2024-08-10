@@ -78,7 +78,6 @@ function BackendStatsUpdate()
 			$stats->hashrate = dboscalar("select hashrate from hashrate where algo=:algo order by time desc limit 1", array(':algo'=>$algo));
 			$stats->hashrate_bad = 0;	//dboscalar("select hashrate_bad from hashrate where algo=:algo order by time desc limit 1", array(':algo'=>$algo));
 			$stats->price = dboscalar("select price from hashrate where algo=:algo order by time desc limit 1", array(':algo'=>$algo));
-			$stats->rent = dboscalar("select rent from hashrate where algo=:algo order by time desc limit 1", array(':algo'=>$algo));
 			$stats->algo = $algo;
 		}
 
@@ -91,9 +90,7 @@ function BackendStatsUpdate()
 		if($stats->hashrate < 1000) $stats->hashrate = 0;
 
 		$t1 = time() - 5*60;
-		$total_rentable = dboscalar("select sum(difficulty) from shares where valid and extranonce1 and algo=:algo and time>$t1", array(':algo'=>$algo));
 		$total_diff = dboscalar("select sum(difficulty) from shares where valid and algo=:algo and time>$t1", array(':algo'=>$algo));
-		$total_rented = 0;
 
 		if(!$total_diff)
 		{
@@ -104,48 +101,24 @@ function BackendStatsUpdate()
 		if($total_diff > 0)
 		{
 			$price = 0;
-			$rent = 0;
 
 			$list = dbolist("select coinid, sum(difficulty) as d from shares where valid and algo=:algo and time>$t1 group by coinid", array(':algo'=>$algo));
 			foreach($list as $item)
 			{
-				if($item['coinid'] == 0)
-				{
-					if(!$total_rentable) continue;
-					$total_rented = $item['d'];
-
-					$price += $stats->rent * $item['d'] / $total_diff;
-					$rent += $stats->rent * $item['d'] / $total_rentable;
-				}
-				else
-				{
 					$coin = getdbo('db_coins', $item['coinid']);
 					if(!$coin) continue;
 
 					$btcghd = yaamp_profitability($coin);
 
 					$price += $btcghd * $item['d'] / $total_diff;
-					$rent += $btcghd * $item['d'] / $total_diff;
-				}
 			}
 
 			$percent = 33;
-			$rent = max($price, ($stats->rent*(100-$percent) + $rent*$percent) / 100);
 
 			$target = yaamp_hashrate_constant($algo);
 			$interval = yaamp_hashrate_step();
 
-			$aa = $total_rentable * $target / $interval / 1000;
-			$bb = dboscalar("select sum(speed) from jobs where active and ready and price>$rent and algo=:algo", array(':algo'=>$algo));
-
-			if($total_rented*1.3 < $total_rentable || $bb > $aa)
-				$rent += $price*YAAMP_FEES_RENTING/100;
-
-			else
-				$rent -= $price*YAAMP_FEES_RENTING/100;
-
 			$stats->price = $price;
-			$stats->rent = $rent;
 		}
 
 		else
@@ -155,7 +128,6 @@ function BackendStatsUpdate()
 			{
 				$btcghd = yaamp_profitability($coin);
 				$stats->price = $btcghd;
-				$stats->rent = $stats->price + $stats->price * YAAMP_FEES_RENTING / 100;
 			}
 		}
 
@@ -188,14 +160,11 @@ function BackendStatsUpdate()
 	$confirmed = dboscalar("select sum(amount*price) from earnings where status=1");
 
 	$wallets = dboscalar("select sum(balance*price) from coins where enable and symbol!='BTC'");
-	$renters = dboscalar("select sum(balance) from renters");
 
 	$mints = dboscalar("select sum(mint*price) from coins where enable");
 	$off = $mints-$immature;
 
 //	debuglog("mint $mints $immature $off");
-
-	$total_profit = $btc->balance + $balances + $onsell + $wallets - $topay - $renters;
 
 	$stats = getdbosql('db_stats', "time=$tm");
 	if(!$stats)
@@ -204,7 +173,6 @@ function BackendStatsUpdate()
 		$stats->time = $tm;
 	}
 
-	$stats->profit = $total_profit;
 	$stats->wallet = $btc->balance;
 	$stats->wallets = $wallets;
 
@@ -214,7 +182,6 @@ function BackendStatsUpdate()
 
 	$stats->immature = $immature;
 	$stats->waiting = $confirmed;
-	$stats->renters = $renters;
 
 	$stats->save();
 
@@ -232,8 +199,6 @@ function BackendStatsUpdate()
 		}
 
 		$dbalgo->profit = dboscalar("select price from hashrate where algo=:algo order by time desc limit 1", array(':algo'=>$algo));
-		$dbalgo->rent = dboscalar("select rent from hashrate where algo=:algo order by time desc limit 1", array(':algo'=>$algo));
-
 		$dbalgo->factor = $factor;
 		$dbalgo->save();
 	}
@@ -292,17 +257,6 @@ function BackendStatsUpdate2()
 	foreach($list as $item)
 	{
 		$jobid = $item['jobid'];
-
-		$stats = getdbosql('db_hashrenter', "time=$tm and jobid=$jobid");
-		if(!$stats)
-		{
-			$stats = new db_hashrenter;
-			//	$stats->renterid = ;
-			$stats->jobid = $item['jobid'];
-			$stats->time = $tm;
-			$stats->hashrate = dboscalar("select hashrate from hashrenter where jobid=:jobid order by time desc limit 1", array(':jobid'=>$jobid));
-			$stats->hashrate_bad = 0;	//dboscalar("select hashrate_bad from hashrenter where jobid=$jobid order by time desc limit 1");
-		}
 
 		$percent = 20;
 		$job_rate = yaamp_job_rate($jobid);

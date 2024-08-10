@@ -120,10 +120,12 @@ function BackendCoinsUpdate()
 		if($coin->auxpow == NULL)
 		{
 			$ret = $remote->getauxblock();
-			$remerr = $remove->error;
+			$remerr = $remote->error;
 			if(strcasecmp($remerr, 'method not found') == 0)
 				$coin->auxpow = false;
 			else if(strcasecmp($remerr, 'Method not found') == 0)
+				$coin->auxpow = false;
+			else if(strcasecmp($remerr, 'error -32601: method not found') == 0)
 				$coin->auxpow = false;
 			else
 				$coin->auxpow = true;

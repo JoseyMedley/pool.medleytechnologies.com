@@ -100,7 +100,7 @@ function mydump($obj, $level=2)
 
 function mydumperror($obj, $level=2)
 {
-	CVarDumper::dumperror($obj, $level);
+	CVarDumper::dumpAsString($obj, $level);
 }
 
 function debuglog($string, $level=2)
@@ -126,15 +126,6 @@ function echolog($string, $level=2)
 {
 	$now = now();
 	echo "[$now] $string\n";
-}
-
-function rentallog($string)
-{
-	$now = now();
-	if(!is_dir(YAAMP_LOGS)) mkdir(YAAMP_LOGS);
-	error_log("[$now] $string\n", 3, YAAMP_LOGS."/rental.log");
-
-	debuglog($string);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

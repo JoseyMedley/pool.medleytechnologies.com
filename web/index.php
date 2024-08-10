@@ -29,8 +29,7 @@ try
 
 catch(CException $e)
 {
-//	Javascript("window.history.go(-1)");
-//	mydump($e, 3);
+	mydump($e, 6);
 
 	debuglog("front end error ".$_SERVER['REMOTE_ADDR']);
 	debuglog($e->getMessage());

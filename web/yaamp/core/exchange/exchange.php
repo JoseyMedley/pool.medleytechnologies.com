@@ -15,13 +15,8 @@ function strip_data($data)
 
 require_once("altmarkets.php");
 require_once("bitstamp.php");
-require_once("bittrex.php");
-require_once("bitz.php");
-require_once("bleutrade.php");
 require_once("cexio.php");
 require_once("crex24.php");
-require_once("deliondex.php");
-require_once("exbitron.php");
 require_once("escodex.php");
 require_once("gateio.php");
 require_once("graviex.php");
@@ -38,7 +33,6 @@ require_once("hitbtc.php");
 require_once("kucoin.php");
 require_once("livecoin.php");
 require_once("cryptowatch.php");
-require_once("stocksexchange.php");
 require_once("tradeogre.php");
 require_once("tradesatoshi.php");
 require_once("txbit.php");

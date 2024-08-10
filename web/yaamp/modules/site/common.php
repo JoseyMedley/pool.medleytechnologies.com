@@ -15,10 +15,6 @@ echo getAdminSideBarLinks();
 <a href='/site/memcached'>Memcache</a>&nbsp;
 <a href='/site/connections'>Connections</a>&nbsp;
 
-<?php if (YAAMP_RENTAL) : ?>
-<a href='/renting/admin'>Rental</a>&nbsp;
-<?php endif; ?>
-
 <div id='main_results'></div>
 
 <br><a href='/site/create'><img width=16 src=''><b>CREATE COIN</b></a>
